@@ -9,11 +9,11 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 #####Importing the dataset and takingelevant columns only
-dataset_train = pd.read_csv('C:/Users/karandeep_singh01/Desktop/all/train.csv').iloc[:,:].values
+dataset_train = pd.read_csv('train.csv').iloc[:,:].values
 X_train = np.column_stack((dataset_train[:,2], dataset_train[:,4:8], dataset_train[:,11]))
 y_train = dataset_train[:,1]
 
-dataset_test = pd.read_csv('C:/Users/karandeep_singh01/Desktop/all/test.csv').iloc[:,:].values
+dataset_test = pd.read_csv('test.csv').iloc[:,:].values
 X_test_final = np.column_stack((dataset_test[:,1], dataset_test[:,3:7], dataset_test[:,10]))
 
 #####Compensating for missing data
@@ -106,6 +106,7 @@ classifier_RF = RandomForestClassifier(n_estimators = 10, criterion='entropy',
 
 #####Importing certain libraries for future use
 from sklearn.cross_validation import cross_val_score
+from sklearn.grid_search import GridSearchCV
 
 #####Applying k-fold Cross Validation to find out best mean accuracies 
 #    of various models
@@ -116,13 +117,32 @@ classifiers_list = [(classifier_LR,'classifier_LR'),(classifier_KNN,
                     (classifier_K_SVM,'classifier_K_SVM'),(classifier_NB, 
                     'classifier_NB'), (classifier_DT,'classifier_DT'), 
                     (classifier_RF,'classifier_RF')]
+Grid_srch_parameters_list = [[{'C': [0.1, 0.5, 1.0, 10, 100], 'class_weight': ['balanced']}],
+                              [{'n_neighbors':[3,5,7,10],'weights':['uniform','distance'],'p':[1,2]}],
+                               [{'C':[0.1, 0.5, 1.0, 10, 100],'kernel':['linear']}],
+                                [{'C':[0.1, 0.5, 1.0, 10, 100],'kernel':['rbf','sigmoid'],'gamma':['auto',0.1,1.0,10,100]}],
+                                [{}],
+                                [{'criterion':['entropy','gini']}],
+                                [{'n_estimators':[5,10,15,20],'criterion':['entropy','gini']}]]
+i, length = 0, len(classifiers_list) + 1
 for clf in classifiers_list:
     #Fitting classifier to training data
     clf[0].fit(X_train_initial, y_train_initial)
     #Predicting output
     y_pred_initial = clf[0].predict(X_test_initial)
-    #Calculating mean accuracy using k-fold
-    accuracies = cross_val_score(estimator = clf[0], X = X_train_initial, 
-                                 y = y_train_initial, cv = 10)
-    mean_accuracy = accuracies.mean()
-    print('Mean k-fold accuracy of '+ clf[1] + ' is ' + str(mean_accuracy))
+    grid_search = GridSearchCV(estimator = clf[0],
+                           param_grid = Grid_srch_parameters_list[i],
+                           scoring = 'accuracy',
+                           cv = 10)
+    grid_search = grid_search.fit(X_train_initial, y_train_initial)
+    best_accuracy = grid_search.best_score_
+    best_parameters = grid_search.best_params_
+#    Calculating mean accuracy using k-fold
+#    accuracies = cross_val_score(estimator = clf[0], X = X_train_initial, 
+#                                 y = y_train_initial, cv = 10)
+#    mean_accuracy = accuracies.mean()
+    str_temp = 'Accuracy of '+ clf[1] 
+    print(str_temp + ' is: ')
+    print (grid_search.best_score_)
+    print('Best parameters: ' + str(grid_search.best_params_))
+    i=i+1
